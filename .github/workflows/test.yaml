@@ -1,6 +1,7 @@
 name: CI
 on:  [workflow_dispatch, pull_request, push]
-
+env: 
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
 jobs:
   test:
     runs-on: ubuntu-latest
