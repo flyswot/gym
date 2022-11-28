@@ -10,7 +10,8 @@ cfg = config['DEFAULT']
 
 cfg_keys = 'version description keywords author author_email'.split()
 expected = cfg_keys + "lib_name user branch license status min_python audience language".split()
-for o in expected: assert o in cfg, "missing expected setting: {}".format(o)
+for o in expected:
+    assert o in cfg, f"missing expected setting: {o}"
 setup_cfg = {o:cfg[o] for o in cfg_keys}
 
 licenses = {
