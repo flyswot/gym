@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "gym"
+  site-url: "https://flyswot.github.io/gym"
+  description: "Train computer vision models from image folder datasets"
+  repo-branch: main
+  repo-url: "https://github.com/flyswot/gym"
