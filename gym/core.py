@@ -351,7 +351,7 @@ def create_mistakes_image_navigator(test_results_df, flyswot_data,trainer):
     df = df.reset_index(drop=True)
     return pn.Column(index_selection,get_image)
 
-# %% ../nbs/00_core.ipynb 105
+# %% ../nbs/00_core.ipynb 103
 def create_misclassified_report(outputs, trainer, test_data, important_label=None, print_results=True, return_df=False):
     id2label = trainer.model.config.id2label
     y_true = outputs.label_ids
