@@ -6,11 +6,12 @@ __all__ = ['filter_bad_images', 'get_fpath', 'return_base_path_deduplicated', 'c
            'prep_data', 'collate_fn', 'train_model', 'plot_confusion_matrix', 'create_classification_report',
            'create_test_results_df', 'create_mistakes_image_navigator', 'create_misclassified_report']
 
-# %% ../nbs/00_core.ipynb 4
+# %% ../nbs/00_core.ipynb 3
 import re
 
-# %% ../nbs/00_core.ipynb 5
+# %% ../nbs/00_core.ipynb 4
 import transformers
+import PIL.Image
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from dataclasses import asdict
 from collections import OrderedDict
@@ -46,7 +47,7 @@ from tqdm.auto import tqdm
 from imagededup.methods import PHash
 from PIL import Image
 
-# %% ../nbs/00_core.ipynb 25
+# %% ../nbs/00_core.ipynb 21
 def filter_bad_images(ds: Dataset):
     idx = list(range(len(ds)))
     for i in tqdm(idx):
@@ -60,11 +61,11 @@ def filter_bad_images(ds: Dataset):
     return ds.select(idx)
 
 
-# %% ../nbs/00_core.ipynb 28
+# %% ../nbs/00_core.ipynb 24
 def get_fpath(ds: Dataset):
    return ds.map(lambda x: {'fpath': x['image'].filename})
 
-# %% ../nbs/00_core.ipynb 35
+# %% ../nbs/00_core.ipynb 31
 def return_base_path_deduplicated(x):
     f = x['fpath']
     f = re.sub(r"(\(\d\))","",f)
@@ -72,7 +73,7 @@ def return_base_path_deduplicated(x):
     f = f.rstrip()
     return {"clean_path": re.sub(r"(\(\d\))","",f)}
 
-# %% ../nbs/00_core.ipynb 36
+# %% ../nbs/00_core.ipynb 32
 def check_uniques(example, uniques, column='clean_path'):
     if example[column] in uniques:
         uniques.remove(example[column])
@@ -80,20 +81,20 @@ def check_uniques(example, uniques, column='clean_path'):
     else:
         return False
 
-# %% ../nbs/00_core.ipynb 37
+# %% ../nbs/00_core.ipynb 33
 def drop_duplicates(ds):
     ds = ds.map(return_base_path_deduplicated)
     uniques = set(ds['clean_path'])
     ds = ds.filter(check_uniques, fn_kwargs={"uniques":uniques})
     return ds
 
-# %% ../nbs/00_core.ipynb 40
+# %% ../nbs/00_core.ipynb 36
 def get_id(example):
     x = example["fpath"]
     x = Path(x).name.split("_")
     return {"id": "_".join(x[:2] if len(x) >= 3 else x[:3])}
 
-# %% ../nbs/00_core.ipynb 42
+# %% ../nbs/00_core.ipynb 38
 def split_w_stratify(
     ds,
     test_size: Union[int, float],
@@ -108,7 +109,7 @@ def split_w_stratify(
     )
     return ds.select(train_inds), ds.select(valid_inds)
 
-# %% ../nbs/00_core.ipynb 50
+# %% ../nbs/00_core.ipynb 46
 def train_valid_split_w_stratify(
     ds,
     valid_size: Union[int,float]=None,
@@ -120,7 +121,7 @@ def train_valid_split_w_stratify(
     valid, test = split_w_stratify(valid_test, test_size=0.1)
     return train, valid, test
 
-# %% ../nbs/00_core.ipynb 55
+# %% ../nbs/00_core.ipynb 48
 def prepare_dataset(ds):
     print("Preparing dataset...")
     print("dropping duplicates...")
@@ -138,13 +139,14 @@ def prepare_dataset(ds):
         print(f"{k} has {len(v)} examples")
     return train,valid,test
 
-# %% ../nbs/00_core.ipynb 62
+# %% ../nbs/00_core.ipynb 55
 def prepare_transforms(model_checkpoint, train_ds, valid_ds, test_ds=None):
     feature_extractor = AutoFeatureExtractor.from_pretrained(model_checkpoint)
     normalize = Normalize(mean=feature_extractor.image_mean, std=feature_extractor.image_std)
     _train_transforms = Compose(
             [
-                Resize((feature_extractor.size,feature_extractor.size)),
+                # Resize((feature_extractor.size,feature_extractor.size)),
+                Resize((224,224)),
                 RandomAdjustSharpness(0.1),
                 RandomAutocontrast(),
                 ToTensor(),
@@ -155,7 +157,8 @@ def prepare_transforms(model_checkpoint, train_ds, valid_ds, test_ds=None):
 
     _val_transforms = Compose(
             [
-                Resize((feature_extractor.size, feature_extractor.size)),
+                Resize((224,224)),
+                # Resize((feature_extractor.size, feature_extractor.size)),
                 ToTensor(),
                 normalize,
             ]
@@ -174,7 +177,7 @@ def prepare_transforms(model_checkpoint, train_ds, valid_ds, test_ds=None):
     valid_ds.set_transform(val_transforms)
     return train_ds, valid_ds, test_ds
 
-# %% ../nbs/00_core.ipynb 64
+# %% ../nbs/00_core.ipynb 57
 @dataclass
 class FlyswotData:
     train_ds: datasets.arrow_dataset.Dataset
@@ -183,7 +186,7 @@ class FlyswotData:
     id2label: Dict[int,str]
     label2id: Dict[str,int]
 
-# %% ../nbs/00_core.ipynb 65
+# %% ../nbs/00_core.ipynb 58
 def prep_data(ds, model_checkpoint=None):
     try:
         labels = ds.info.features['label'].names
@@ -195,16 +198,16 @@ def prep_data(ds, model_checkpoint=None):
     except FileNotFoundError as e:
         print(f"{e} make sure you are logged into the Hugging Face Hub")
 
-# %% ../nbs/00_core.ipynb 73
+# %% ../nbs/00_core.ipynb 66
 def collate_fn(examples):
     pixel_values = torch.stack([example["pixel_values"] for example in examples])
     labels = torch.tensor([example["label"] for example in examples])
     return {"pixel_values": pixel_values, "labels": labels}
 
-# %% ../nbs/00_core.ipynb 74
+# %% ../nbs/00_core.ipynb 67
 from sklearn.metrics import classification_report
 
-# %% ../nbs/00_core.ipynb 75
+# %% ../nbs/00_core.ipynb 68
 def train_model(data, 
                 model_checkpoint,
                 num_epochs=50,
@@ -279,7 +282,7 @@ def train_model(data,
     trainer.train()
     return trainer
 
-# %% ../nbs/00_core.ipynb 83
+# %% ../nbs/00_core.ipynb 76
 def plot_confusion_matrix(outputs, trainer):
     from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
     import matplotlib.pyplot as plt
@@ -292,7 +295,7 @@ def plot_confusion_matrix(outputs, trainer):
     disp.plot(xticks_rotation=45, ax=ax)
 
 
-# %% ../nbs/00_core.ipynb 85
+# %% ../nbs/00_core.ipynb 78
 def create_classification_report(outputs, trainer):
     from sklearn.metrics import classification_report
     y_true = outputs.label_ids
@@ -300,7 +303,7 @@ def create_classification_report(outputs, trainer):
     labels =trainer.model.config.id2label.values()
     return classification_report(y_true, y_pred, target_names=labels, output_dict=True)
 
-# %% ../nbs/00_core.ipynb 93
+# %% ../nbs/00_core.ipynb 86
 def create_test_results_df(outputs, trainer, important_label=None, print_results=True, return_df=False) -> pd.DataFrame:
     id2label = trainer.model.config.id2label
     y_true = outputs.label_ids
@@ -322,7 +325,7 @@ def create_test_results_df(outputs, trainer, important_label=None, print_results
         return df
 
 
-# %% ../nbs/00_core.ipynb 98
+# %% ../nbs/00_core.ipynb 91
 def create_mistakes_image_navigator(test_results_df, flyswot_data,trainer):
     import panel as pn
     pn.extension()
@@ -351,7 +354,7 @@ def create_mistakes_image_navigator(test_results_df, flyswot_data,trainer):
     df = df.reset_index(drop=True)
     return pn.Column(index_selection,get_image)
 
-# %% ../nbs/00_core.ipynb 104
+# %% ../nbs/00_core.ipynb 97
 def create_misclassified_report(outputs, trainer, test_data, important_label=None, print_results=True, return_df=False):
     id2label = trainer.model.config.id2label
     y_true = outputs.label_ids
