@@ -11,7 +11,6 @@ import re
 
 # %% ../nbs/00_core.ipynb 4
 import transformers
-import PIL.Image
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from dataclasses import asdict
 from collections import OrderedDict
@@ -196,16 +195,16 @@ def prep_data(ds, model_checkpoint=None):
     except FileNotFoundError as e:
         print(f"{e} make sure you are logged into the Hugging Face Hub")
 
-# %% ../nbs/00_core.ipynb 64
+# %% ../nbs/00_core.ipynb 63
 def collate_fn(examples):
     pixel_values = torch.stack([example["pixel_values"] for example in examples])
     labels = torch.tensor([example["label"] for example in examples])
     return {"pixel_values": pixel_values, "labels": labels}
 
-# %% ../nbs/00_core.ipynb 65
+# %% ../nbs/00_core.ipynb 64
 from sklearn.metrics import classification_report
 
-# %% ../nbs/00_core.ipynb 66
+# %% ../nbs/00_core.ipynb 65
 def train_model(data, 
                 model_checkpoint,
                 num_epochs=50,
@@ -254,22 +253,6 @@ def train_model(data,
         accuracy = accuracy_metric.compute(predictions=predictions, references=labels)['accuracy']
         return {"precision": precision, "recall": recall, "f1":f1, "accuracy":accuracy}
 
-    
-    # def compute_metrics(eval_pred):
-    #     predictions, labels = eval_pred
-    #     id2label = model.config.id2label
-    #     predictions = np.argmax(predictions, axis=1)
-    #     # report = classification_report(labels,
-    #     #               predictions, output_dict=True,zero_division=0)
-    #     # per_label = {} 
-    #     # for k,v in report.items():
-    #     #     if k.isdigit():
-    #     #         label = id2label[int(k)]
-    #     #         metrics = v['f1-score']
-    #     #         per_label[f"{label}_f1"] = metrics  
-    #     return f1.compute(predictions=predictions, references=labels, average='macro')
-
-
     trainer = Trainer(model,
                       args,
     train_dataset=train_ds,
@@ -280,7 +263,7 @@ def train_model(data,
     trainer.train()
     return trainer
 
-# %% ../nbs/00_core.ipynb 74
+# %% ../nbs/00_core.ipynb 73
 def plot_confusion_matrix(outputs, trainer):
     from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
     import matplotlib.pyplot as plt
@@ -293,7 +276,7 @@ def plot_confusion_matrix(outputs, trainer):
     disp.plot(xticks_rotation=45, ax=ax)
 
 
-# %% ../nbs/00_core.ipynb 76
+# %% ../nbs/00_core.ipynb 75
 def create_classification_report(outputs, trainer):
     from sklearn.metrics import classification_report
     y_true = outputs.label_ids
@@ -301,7 +284,7 @@ def create_classification_report(outputs, trainer):
     labels =trainer.model.config.id2label.values()
     return classification_report(y_true, y_pred, target_names=labels, output_dict=True)
 
-# %% ../nbs/00_core.ipynb 84
+# %% ../nbs/00_core.ipynb 83
 def create_test_results_df(outputs, trainer, important_label=None, print_results=True, return_df=False) -> pd.DataFrame:
     id2label = trainer.model.config.id2label
     y_true = outputs.label_ids
@@ -323,7 +306,7 @@ def create_test_results_df(outputs, trainer, important_label=None, print_results
         return df
 
 
-# %% ../nbs/00_core.ipynb 89
+# %% ../nbs/00_core.ipynb 88
 def create_mistakes_image_navigator(test_results_df, flyswot_data,trainer):
     import panel as pn
     pn.extension()
@@ -352,7 +335,7 @@ def create_mistakes_image_navigator(test_results_df, flyswot_data,trainer):
     df = df.reset_index(drop=True)
     return pn.Column(index_selection,get_image)
 
-# %% ../nbs/00_core.ipynb 95
+# %% ../nbs/00_core.ipynb 94
 def create_misclassified_report(outputs, trainer, test_data, important_label=None, print_results=True, return_df=False):
     id2label = trainer.model.config.id2label
     y_true = outputs.label_ids
