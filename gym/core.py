@@ -21,7 +21,7 @@ from datasets import Dataset
 from datasets import load_dataset
 from pathlib import Path
 from sklearn.model_selection import StratifiedShuffleSplit
-from torchvision.transforms import (CenterCrop, 
+from torchvision.transforms import (
                                     RandomErasing,
                                     RandomAutocontrast,
                                     Compose, 
