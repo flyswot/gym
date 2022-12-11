@@ -145,8 +145,7 @@ def prepare_transforms(model_checkpoint, train_ds, valid_ds, test_ds=None):
     normalize = Normalize(mean=feature_extractor.image_mean, std=feature_extractor.image_std)
     _train_transforms = Compose(
             [
-                # Resize((feature_extractor.size,feature_extractor.size)),
-                Resize((224,224)),
+                Resize((feature_extractor.size['height'],feature_extractor.size['width'])),
                 RandomAdjustSharpness(0.1),
                 RandomAutocontrast(),
                 ToTensor(),
@@ -157,8 +156,7 @@ def prepare_transforms(model_checkpoint, train_ds, valid_ds, test_ds=None):
 
     _val_transforms = Compose(
             [
-                Resize((224,224)),
-                # Resize((feature_extractor.size, feature_extractor.size)),
+                Resize((feature_extractor.size['height'],feature_extractor.size['width'])),
                 ToTensor(),
                 normalize,
             ]
