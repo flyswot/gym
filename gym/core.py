@@ -186,7 +186,7 @@ class FlyswotData:
 # %% ../nbs/00_core.ipynb 56
 def prep_data(ds, model_checkpoint=None):
     try:
-        labels = ds.info.features['label'].names
+        labels = ds.features['label'].names
         id2label = dict(enumerate(labels))
         label2id = {v:k for k,v in id2label.items()}
         train, valid, test = prepare_dataset(ds)
