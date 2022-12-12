@@ -10,6 +10,7 @@ __all__ = ['filter_bad_images', 'get_fpath', 'return_base_path_deduplicated', 'c
 import re
 
 # %% ../nbs/00_core.ipynb 4
+import shutil
 import transformers
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from dataclasses import asdict
