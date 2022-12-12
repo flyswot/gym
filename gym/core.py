@@ -207,9 +207,10 @@ from sklearn.metrics import classification_report
 def train_model(data, 
                 model_checkpoint,
                 num_epochs=50,
-                hub_model_id="flyswot",
+                hub_model_id=None,
                 tune=False,
                fp16=True):
+    hub_model_id = model_checkpoint.split("/")[-1] if hub_model_id is None else hub_model_id
     transformers.logging.set_verbosity_warning()
     train_ds, valid_ds, test_ds, id2label, label2id = asdict(data).values()
     print(train_ds)
@@ -262,7 +263,7 @@ def train_model(data,
     trainer.train()
     return trainer
 
-# %% ../nbs/00_core.ipynb 69
+# %% ../nbs/00_core.ipynb 71
 def plot_confusion_matrix(outputs, trainer):
     from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
     import matplotlib.pyplot as plt
@@ -275,7 +276,7 @@ def plot_confusion_matrix(outputs, trainer):
     disp.plot(xticks_rotation=45, ax=ax)
 
 
-# %% ../nbs/00_core.ipynb 71
+# %% ../nbs/00_core.ipynb 73
 def create_classification_report(outputs, trainer):
     from sklearn.metrics import classification_report
     y_true = outputs.label_ids
@@ -283,7 +284,7 @@ def create_classification_report(outputs, trainer):
     labels =trainer.model.config.id2label.values()
     return classification_report(y_true, y_pred, target_names=labels, output_dict=True)
 
-# %% ../nbs/00_core.ipynb 79
+# %% ../nbs/00_core.ipynb 81
 def create_test_results_df(outputs, trainer, important_label=None, print_results=True, return_df=False) -> pd.DataFrame:
     id2label = trainer.model.config.id2label
     y_true = outputs.label_ids
@@ -305,7 +306,7 @@ def create_test_results_df(outputs, trainer, important_label=None, print_results
         return df
 
 
-# %% ../nbs/00_core.ipynb 84
+# %% ../nbs/00_core.ipynb 86
 def create_mistakes_image_navigator(test_results_df, flyswot_data,trainer):
     import panel as pn
     pn.extension()
@@ -334,7 +335,7 @@ def create_mistakes_image_navigator(test_results_df, flyswot_data,trainer):
     df = df.reset_index(drop=True)
     return pn.Column(index_selection,get_image)
 
-# %% ../nbs/00_core.ipynb 90
+# %% ../nbs/00_core.ipynb 92
 def create_misclassified_report(outputs, trainer, test_data, important_label=None, print_results=True, return_df=False):
     id2label = trainer.model.config.id2label
     y_true = outputs.label_ids
